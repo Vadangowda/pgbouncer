@@ -818,6 +818,7 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
 	char *search_path_buf = NULL;
 	char *schema = NULL;
 	char *query = NULL, *search_query=NULL;
+	char *str_ptr2 = NULL;
 
 	if (pkt->type == 'Q') {
 		query_str = (char *) pkt_start + 5;
@@ -825,18 +826,19 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
 		stmt_str = pkt_start + 5;
 		query_str = stmt_str + strlen(stmt_str) + 1;
 	}
-	char query_string_buf [strlen(query_str) + 1];
+    char query_string_buf [strlen(query_str) + 1];
 	char query_searchpath_buf [strlen(query_str) + 1];
+
 	memcpy(query_string_buf, query_str, strlen(query_str) + 1);
-    slog_info(client, "*********Query String %s ***********", query_str);
+    slog_debug(client, "*********Query String %s ***********", query_str);
     memcpy(query_string_buf, query_str, strlen(query_str) + 1);
     if (strstr(query_str, "search_path") != NULL) {
         char *str_ptr1 = query_string_buf;
-        while (query=strtok_r(str_ptr1, delim1, &str_ptr1)){
+        while ((query=strtok_r(str_ptr1, delim1, &str_ptr1)) != NULL){
             if (strstr(query, "search_path") != NULL){
                 memcpy(query_searchpath_buf, query, strlen(query) + 1);
-                char *str_ptr2 = query_searchpath_buf;
-                while (search_query=strtok_r(str_ptr2, delim, &str_ptr2)){
+                str_ptr2 = query_searchpath_buf;
+                while ((search_query=strtok_r(str_ptr2, delim, &str_ptr2)) != NULL){
                    number_of_words++;
                    schema = search_query;
                 }
@@ -872,7 +874,7 @@ static bool handle_client_work(PgSocket *client, PktHdr *pkt)
 		}
 		search_path = get_search_path(client, pkt);
 	    if (search_path != NULL){
-	        slog_info(client, "Search path of the client: '%s'",search_path);
+	        slog_debug(client, "Search path of the client: '%s'",search_path);
 	        varcache_set(&client->vars, "search_path", search_path);
 	    }
 		rfq_delta++;
@@ -898,10 +900,10 @@ static bool handle_client_work(PgSocket *client, PktHdr *pkt)
 	 * to buffer packets until sync or flush is sent by client
 	 */
 	case 'P':		/* Parse */
-	    slog_info(client, "Load parameter on client handle_client_work, Packet Type: '%c'",   pkt->type);
+	    slog_debug(client, "Load parameter on client handle_client_work, Packet Type: '%c'",   pkt->type);
 	    search_path = get_search_path(client, pkt);
 	    if (search_path  != NULL){
-	        slog_info(client, "Search path of the client: '%s'",search_path);
+	        slog_debug(client, "Search path of the client: '%s'",search_path);
 	        varcache_set(&client->vars, "search_path", search_path);
 	    }
 	    break;
@@ -944,9 +946,9 @@ static bool handle_client_work(PgSocket *client, PktHdr *pkt)
         } else {
            slog_info(client, "Schema for the query: public");
         }
-        if (!rewrite_query(client, schema, pkt)) {
+        /*if (!rewrite_query(client, schema, pkt)) {
             return false;
-        }
+        }*/
         if (schema != NULL){
             route_client_connection(client, schema, pkt);
         } else {
@@ -972,7 +974,7 @@ static bool handle_client_work(PgSocket *client, PktHdr *pkt)
 
 	/* forward the packet */
 	sbuf_prepare_send(sbuf, &client->link->sbuf, pkt->len);
-    slog_info(client, "handle_client_work: pkt type: '%c'", pkt->type);
+    slog_debug(client, "handle_client_work: pkt type: '%c'", pkt->type);
 	return true;
 }
 

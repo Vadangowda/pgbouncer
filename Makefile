@@ -23,9 +23,7 @@ pgbouncer_SOURCES = \
 	src/system.c \
 	src/takeover.c \
 	src/util.c \
-	src/pycall.c \
-        src/route_connection.c \
-        src/rewrite_query.c \
+    src/route_connection.c \
 	src/varcache.c \
 	src/common/base64.c \
 	src/common/saslprep.c \
@@ -52,9 +50,7 @@ pgbouncer_SOURCES = \
 	include/system.h \
 	include/takeover.h \
 	include/util.h \
-	include/pycall.h \
 	include/route_connection.h \
-	include/rewrite_query.h \
 	include/varcache.h \
 	include/common/base64.h \
 	include/common/pg_wchar.h \
@@ -65,8 +61,9 @@ pgbouncer_SOURCES = \
 	include/common/unicode_norm_table.h
 
 # pgbouncer_CPPFLAGS = -Iinclude $(CARES_CFLAGS) $(LIBEVENT_CFLAGS) $(TLS_CPPFLAGS)
-python_CPPFLAGS = -I/usr/include/python2.7 -I/usr/include/python2.7	
-pgbouncer_CPPFLAGS = -Iinclude $(CARES_CFLAGS) $(LIBEVENT_CFLAGS) $(TLS_CPPFLAGS) $(python_CPPFLAGS) 
+# python_CPPFLAGS = -I/usr/include/python2.7 -I/usr/include/python2.7	
+pgbouncer_CPPFLAGS = -Iinclude $(CARES_CFLAGS) $(LIBEVENT_CFLAGS) $(TLS_CPPFLAGS) 
+
 
 # include libusual sources directly
 AM_FEATURES = libusual
@@ -100,9 +97,12 @@ LIBUSUAL_DIST = $(filter-out %/config.h, $(sort $(wildcard \
 		lib/find_modules.sh )))
 
 
-python_LDFLAGS = -lpthread -ldl -lutil -lm -lpython2.7 -Xlinker -export-dynamic
+python_LDFLAGS = -lpthread -ldl -lutil -lm -Xlinker -export-dynamic
+pg_LDFLAGS = -lpq
 pgbouncer_LDFLAGS := $(TLS_LDFLAGS)
-pgbouncer_LDADD := $(CARES_LIBS) $(LIBEVENT_LIBS) $(TLS_LIBS) $(LIBS) $(python_LDFLAGS) 
+
+pgbouncer_LDADD := $(CARES_LIBS) $(LIBEVENT_LIBS) $(TLS_LIBS) $(LIBS) $(pg_LDFLAGS) 
+# pgbouncer_LDADD := $(CARES_LIBS) $(LIBEVENT_LIBS) $(TLS_LIBS) $(LIBS) $(python_LDFLAGS) 
 LIBS :=
 
 #
