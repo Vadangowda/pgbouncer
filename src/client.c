@@ -811,14 +811,15 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
     SBuf *sbuf = &client->sbuf;
 	char *pkt_start = (char *) &sbuf->io->buf[sbuf->io->parse_pos];
 	char delim[] = " ";
-	char delim1[] = ";";
+	char delim1[] = ";"
+	char delim2[] = "=";
 	char *stmt_str = NULL;
 	char *query_str = NULL;
 	int number_of_words = 0;
 	char *search_path_buf = NULL;
 	char *schema = NULL;
-	char *query = NULL, *search_query=NULL;
-	char *str_ptr2 = NULL;
+	char *query = NULL, *search_query=NULL, *search_query_equal=NULL;
+	char *str_ptr2 = NULL, *str_ptr3 = NULL;
 
 	if (pkt->type == 'Q') {
 		query_str = (char *) pkt_start + 5;
@@ -828,7 +829,11 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
 	}
     char query_string_buf [strlen(query_str) + 1];
 	char query_searchpath_buf [strlen(query_str) + 1];
-
+    char query_searchpath_withequal_buf [strlen(query_str) + 1];
+    /*
+     SET search_path=mc_oarservice_oarservice;
+     SET search_path TO mc_oarservice_oarservice;
+    */
 	memcpy(query_string_buf, query_str, strlen(query_str) + 1);
     slog_debug(client, "*********Query String %s ***********", query_str);
     memcpy(query_string_buf, query_str, strlen(query_str) + 1);
@@ -840,7 +845,15 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
                 str_ptr2 = query_searchpath_buf;
                 while ((search_query=strtok_r(str_ptr2, delim, &str_ptr2)) != NULL){
                    number_of_words++;
-                   schema = search_query;
+                   if (strchr(search_query, '=')){
+                       memcpy(query_searchpath_withequal_buf, search_query, strlen(search_query) + 1);
+                       str_ptr3 = query_searchpath_withequal_buf;
+                       while ((search_query_equal=strtok_r(str_ptr3, delim2, &str_ptr3)) != NULL){
+                           schema = search_query_equal;
+                       }
+                   } else {
+                       schema = search_query;
+                   }
                 }
             }
         }
