@@ -811,7 +811,7 @@ static char* get_search_path(PgSocket *client, PktHdr *pkt)
     SBuf *sbuf = &client->sbuf;
 	char *pkt_start = (char *) &sbuf->io->buf[sbuf->io->parse_pos];
 	char delim[] = " ";
-	char delim1[] = ";"
+	char delim1[] = ";";
 	char delim2[] = "=";
 	char *stmt_str = NULL;
 	char *query_str = NULL;
