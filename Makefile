@@ -77,12 +77,9 @@ DISTCLEANFILES = config.mak config.status lib/usual/config.h config.log
 # files in tgz
 EXTRA_DIST = AUTHORS COPYRIGHT Makefile config.mak.in config.sub config.guess \
 	     install-sh autogen.sh configure configure.ac \
-	     debian/compat debian/changelog debian/control debian/rules debian/copyright \
-	     etc/mkauth.py etc/example.debian.init.sh \
+	     etc/mkauth.py etc/optscan.sh etc/example.debian.init.sh \
 	     win32/Makefile \
 	     $(LIBUSUAL_DIST)
-
-MAINTAINERCLEANFILES = debian/changelog
 
 # libusual files (FIXME: list should be provided by libusual...)
 LIBUSUAL_DIST = $(filter-out %/config.h, $(sort $(wildcard \
@@ -143,18 +140,7 @@ config.mak:
 
 check: all
 	etc/optscan.sh
-	make -C test check
-
-deb: debian/changelog
-	debuild -b -us -uc
-
-debian/changelog: NEWS.md
-	echo '$(PACKAGE_TARNAME) ($(PACKAGE_VERSION)-1) unstable; urgency=low' >$@
-	echo >>$@
-	echo '  * v$(PACKAGE_VERSION)' >>$@
-	echo >>$@
-	printf ' -- PgBouncer developers <noreply@localhost>  ' >>$@
-	date -u -R -d `sed -E -n '/^\*\*/ { s/^.*([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/;p;q }' $<` >>$@
+	$(MAKE) -C test check
 
 w32arch = i686-w64-mingw32
 w32zip = $(PACKAGE_TARNAME)-$(PACKAGE_VERSION)-win32.zip
@@ -166,7 +152,7 @@ zip: configure clean
 			--without-openssl \
 			--without-cares \
 			--enable-evdns \
-		&& make \
+		&& $(MAKE) \
 		&& $(w32arch)-strip pgbouncer.exe pgbevent.dll \
 		&& zip pgbouncer.zip pgbouncer.exe pgbevent.dll doc/*.html
 	zip -l buildexe/pgbouncer.zip etc/pgbouncer.ini etc/userlist.txt

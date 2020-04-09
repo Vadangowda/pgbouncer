@@ -22,10 +22,6 @@
 
 #include "bouncer.h"
 
-#ifdef HAVE_NETDB_H
-#include <netdb.h>
-#endif
-
 #include <usual/fileutil.h>
 
 /*
@@ -344,7 +340,7 @@ bool parse_database(void *base, const char *name, const char *connstr)
 	} else {
 		msg = pktbuf_dynamic(128);
 		if (!msg)
-			fatal("cannot allocate startup buf");
+			die("out of memory");
 		db->startup_params = msg;
 	}
 

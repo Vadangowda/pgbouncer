@@ -975,7 +975,7 @@ static bool admin_cmd_shutdown(PgSocket *admin, const char *arg)
 	 */
 	log_info("SHUTDOWN command issued");
 	cf_shutdown = 2;
-	event_loopbreak();
+	event_base_loopbreak(pgb_event_base);
 
 	return true;
 }
@@ -1468,15 +1468,15 @@ bool admin_handle_client(PgSocket *admin, PktHdr *pkt)
  */
 bool admin_pre_login(PgSocket *client, const char *username)
 {
-	uid_t peer_uid = -1;
-	gid_t peer_gid = -1;
-	int res;
-
 	client->admin_user = 0;
 	client->own_user = 0;
 
 	/* tag same uid as special */
 	if (pga_is_unix(&client->remote_addr)) {
+		uid_t peer_uid;
+		gid_t peer_gid;
+		int res;
+
 		res = getpeereid(sbuf_socket(&client->sbuf), &peer_uid, &peer_gid);
 		if (res >= 0 && peer_uid == getuid()
 			&& strcmp("pgbouncer", username) == 0)
@@ -1536,19 +1536,19 @@ void admin_setup(void)
 	/* fake database */
 	db = add_database("pgbouncer");
 	if (!db)
-		fatal("no memory for admin database");
+		die("no memory for admin database");
 
 	db->port = cf_listen_port;
 	db->pool_size = 2;
 	db->admin = 1;
 	db->pool_mode = POOL_STMT;
 	if (!force_user(db, "pgbouncer", ""))
-		fatal("no mem on startup - cannot alloc pgbouncer user");
+		die("no mem on startup - cannot alloc pgbouncer user");
 
 	/* fake pool */
 	pool = get_pool(db, db->forced_user);
 	if (!pool)
-		fatal("cannot create admin pool?");
+		die("cannot create admin pool?");
 	admin_pool = pool;
 
 	/* user */
@@ -1557,13 +1557,13 @@ void admin_setup(void)
 		/* fake user with disabled psw */
 		user = add_user("pgbouncer", "");
 		if (!user)
-			fatal("cannot create admin user?");
+			die("cannot create admin user?");
 	}
 
 	/* prepare welcome */
 	msg = pktbuf_dynamic(128);
 	if (!msg)
-		fatal("cannot create admin welcome");
+		die("out of memory");
 	pktbuf_write_AuthenticationOk(msg);
 	pktbuf_write_ParameterStatus(msg, "server_version", PACKAGE_VERSION "/bouncer");
 	pktbuf_write_ParameterStatus(msg, "client_encoding", "UTF8");
@@ -1574,14 +1574,14 @@ void admin_setup(void)
 	pktbuf_write_ParameterStatus(msg, "is_superuser", "on");
 
 	if (msg->failed)
-		fatal("admin welcome failed");
+		die("admin welcome failed");
 
 	pool->welcome_msg = msg;
 	pool->welcome_msg_ready = 1;
 
 	msg = pktbuf_dynamic(128);
 	if (!msg)
-		fatal("cannot create admin startup pkt");
+		die("cannot create admin startup pkt");
 	db->startup_params = msg;
 	pktbuf_put_string(msg, "database");
 	db->dbname = "pgbouncer";

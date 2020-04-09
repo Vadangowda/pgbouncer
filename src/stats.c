@@ -335,8 +335,8 @@ static void refresh_stats(evutil_socket_t s, short flags, void *arg)
 {
 	struct List *item;
 	PgPool *pool;
-	struct timeval period = { cf_stats_period, 0 };
 	PgStats old_total, cur_total;
+	PgStats avg;
 
 	reset_stats(&old_total);
 	reset_stats(&cur_total);
@@ -355,11 +355,9 @@ static void refresh_stats(evutil_socket_t s, short flags, void *arg)
 		}
 	}
 
+	calc_average(&avg, &cur_total, &old_total);
+
 	if (cf_log_stats) {
-		PgStats avg;
-
-		calc_average(&avg, &cur_total, &old_total);
-
 		log_info("stats: %" PRIu64 " xacts/s,"
 			 " %" PRIu64 " queries/s,"
 			 " in %" PRIu64 " B/s,"
@@ -373,7 +371,18 @@ static void refresh_stats(evutil_socket_t s, short flags, void *arg)
 			 avg.wait_time);
 	}
 
-	safe_evtimer_add(&ev_stats, &period);
+	sd_notifyf(0,
+		   "STATUS=stats: %" PRIu64 " xacts/s,"
+		   " %" PRIu64 " queries/s,"
+		   " in %" PRIu64 " B/s,"
+		   " out %" PRIu64 " B/s,"
+		   " xact %" PRIu64 " μs,"
+		   " query %" PRIu64 " μs,"
+		   " wait %" PRIu64 " μs",
+		   avg.xact_count, avg.query_count,
+		   avg.client_bytes, avg.server_bytes,
+		   avg.xact_time, avg.query_time,
+		   avg.wait_time);
 }
 
 void stats_setup(void)
@@ -384,6 +393,6 @@ void stats_setup(void)
 	old_stamp = new_stamp - USEC;
 
 	/* launch stats */
-	evtimer_set(&ev_stats, refresh_stats, NULL);
-	safe_evtimer_add(&ev_stats, &period);
+	event_assign(&ev_stats, pgb_event_base, -1, EV_PERSIST, refresh_stats, NULL);
+	event_add(&ev_stats, &period);
 }
