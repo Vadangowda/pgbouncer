@@ -289,6 +289,7 @@ bool route_client_connection(PgSocket *client, char* schema, PktHdr *pkt) {
 	}
 	pool = get_pool(db, client->auth_user);
 	if (client->pool != pool) {
+
 		if (client->link != NULL) {
 			/* release existing server connection back to pool */
 			slog_debug(client, "releasing existing server connection");
@@ -296,10 +297,12 @@ bool route_client_connection(PgSocket *client, char* schema, PktHdr *pkt) {
 			client->link = NULL;
 		}
 		/* assign client to new pool */
+		change_client_state(client, CL_JUSTFREE);
 		slog_debug(client,
 				"assigning client to connection pool for database <%s>",
 				dbname);
 		client->pool = pool;
+		change_client_state(client, CL_ACTIVE);
 	} else {
 		slog_debug(client, "already connected to pool <%s>", dbname);
 	}
