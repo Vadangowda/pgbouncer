@@ -965,12 +965,12 @@ static bool handle_client_work(PgSocket *client, PktHdr *pkt)
         }
         /*if (!rewrite_query(client, schema, pkt)) {
             return false;
-        }
+        }*/
         if (schema != NULL){
             route_client_connection(client, schema, pkt);
         } else {
             route_client_connection(client, "", pkt);
-        }*/
+        }
 
     }
 

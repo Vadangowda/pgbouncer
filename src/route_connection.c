@@ -251,7 +251,7 @@ bool route_client_connection(PgSocket *client, char* schema, PktHdr *pkt) {
 	slog_debug(client, "route_client_connection: Username => %s", client->auth_user->name);
 	slog_debug(client, "route_client_connection: Query => %s", query_str);
 	slog_debug(client, "route_client_connection: Packet Type => '%c'", pkt->type);
-	if (schema != NULL){
+	if (strlen(schema) != 0){
 	    slog_debug(client, "RoutingInfo: Schema: %s, Query: %s", schema, query_str);
 	} else {
 	    slog_debug(client, "RoutingInfo: Schema: public, Query: %s", query_str);
@@ -289,13 +289,35 @@ bool route_client_connection(PgSocket *client, char* schema, PktHdr *pkt) {
 	}
 	pool = get_pool(db, client->auth_user);
 	if (client->pool != pool) {
-
+        /*
 		if (client->link != NULL) {
-			/* release existing server connection back to pool */
+			/* release existing server connection back to pool
 			slog_debug(client, "releasing existing server connection");
 			release_server(client->link);
 			client->link = NULL;
-		}
+		}*/
+		switch (client->state) {
+            case CL_ACTIVE:
+            case CL_LOGIN:
+                if (client->link) {
+                    PgSocket *server = client->link;
+                    /* ->ready may be set before all is sent */
+                    if (server->ready && sbuf_is_empty(&server->sbuf)) {
+                        /* retval does not matter here */
+                        release_server(server);
+                    } else {
+                        server->link = NULL;
+                        client->link = NULL;
+                        disconnect_server(server, true, "unclean server");
+                    }
+                }
+            case CL_WAITING:
+            case CL_WAITING_LOGIN:
+            case CL_CANCEL:
+                break;
+            default:
+                fatal("bad client state in disconnect_client: %d", client->state);
+        }
 		/* assign client to new pool */
 		change_client_state(client, CL_JUSTFREE);
 		slog_debug(client,
