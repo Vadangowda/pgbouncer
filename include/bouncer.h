@@ -36,7 +36,20 @@
 #include <usual/mbuf.h>
 #include <usual/strpool.h>
 
-#include <event.h>
+#include <event2/event.h>
+#include <event2/event_struct.h>
+
+#ifdef USE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#else
+#define sd_notify(ue, s)
+#define sd_notifyf(ue, f, ...)
+#endif
+
+
+/* global libevent handle */
+extern struct event_base *pgb_event_base;
+
 
 
 /* each state corresponds to a list */
@@ -509,6 +522,7 @@ extern int cf_tcp_keepidle;
 extern int cf_tcp_keepintvl;
 extern int cf_tcp_socket_buffer;
 extern int cf_tcp_defer_accept;
+extern int cf_tcp_user_timeout;
 
 extern int cf_log_connections;
 extern int cf_log_disconnections;

@@ -186,7 +186,7 @@ static void per_loop_activate(PgPool *pool)
 				launch_new_connection(pool);
 				continue;
 			}
-
+            slog_debug(client, "activate_client: per_loop_activate");
 			/* there is a ready server already */
 			activate_client(client);
 		} else if (sv_tested > 0) {
@@ -619,7 +619,7 @@ static void do_full_maint(evutil_socket_t sock, short flags, void *arg)
 	 * Avoid doing anything that may surprise other pgbouncer.
 	 */
 	if (cf_pause_mode == P_SUSPEND)
-		goto skip_maint;
+		return;
 
 	statlist_for_each_safe(item, &pool_list, tmp) {
 		pool = container_of(item, PgPool, head);
@@ -654,7 +654,7 @@ static void do_full_maint(evutil_socket_t sock, short flags, void *arg)
 	if (cf_shutdown == 1 && get_active_server_count() == 0) {
 		log_info("server connections dropped, exiting");
 		cf_shutdown = 2;
-		event_loopbreak();
+		event_base_loopbreak(pgb_event_base);
 		return;
 	}
 
@@ -662,17 +662,14 @@ static void do_full_maint(evutil_socket_t sock, short flags, void *arg)
 		loader_users_check();
 
 	adns_zone_cache_maint(adns);
-
-skip_maint:
-	safe_evtimer_add(&full_maint_ev, &full_maint_period);
 }
 
 /* first-time initialization */
 void janitor_setup(void)
 {
 	/* launch maintenance */
-	evtimer_set(&full_maint_ev, do_full_maint, NULL);
-	safe_evtimer_add(&full_maint_ev, &full_maint_period);
+	event_assign(&full_maint_ev, pgb_event_base, -1, EV_PERSIST, do_full_maint, NULL);
+	event_add(&full_maint_ev, &full_maint_period);
 }
 
 void kill_pool(PgPool *pool)
