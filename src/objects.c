@@ -752,6 +752,8 @@ static bool reuse_on_release(PgSocket *server)
 	PgPool *pool = server->pool;
 	PgSocket *client = first_socket(&pool->waiting_client_list);
 	if (client) {
+
+	    slog_debug(client, "activate_client: reuse_on_release");
 		activate_client(client);
 
 		/*

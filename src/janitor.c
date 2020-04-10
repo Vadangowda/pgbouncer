@@ -186,7 +186,7 @@ static void per_loop_activate(PgPool *pool)
 				launch_new_connection(pool);
 				continue;
 			}
-
+            slog_debug(client, "activate_client: per_loop_activate");
 			/* there is a ready server already */
 			activate_client(client);
 		} else if (sv_tested > 0) {
