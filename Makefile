@@ -95,7 +95,7 @@ LIBUSUAL_DIST = $(filter-out %/config.h, $(sort $(wildcard \
 
 
 python_LDFLAGS = -lpthread -ldl -lutil -lm -Xlinker -export-dynamic
-pg_LDFLAGS = -lpq
+pg_LDFLAGS = -lpq -laws-cpp-sdk-secretsmanager -L./cpplib -lawssecretmanagercpp -lawssecretmanagercconn
 pgbouncer_LDFLAGS := $(TLS_LDFLAGS)
 
 pgbouncer_LDADD := $(CARES_LIBS) $(LIBEVENT_LIBS) $(TLS_LIBS) $(LIBS) $(pg_LDFLAGS) 
@@ -107,10 +107,12 @@ LIBS :=
 #
 
 EXTRA_pgbouncer_SOURCES = win32/win32support.c win32/win32support.h
+EXTRA_cpp_SOURCES = include/cpp/aws_secret_manager.h include/cpp/aws_secret_manager_c_connector.h
 EXTRA_PROGRAMS = pgbevent
 ifeq ($(PORTNAME),win32)
 pgbouncer_CPPFLAGS += -Iwin32
 pgbouncer_SOURCES += $(EXTRA_pgbouncer_SOURCES)
+pgbouncer_SOURCES += $(EXTRA_cpp_SOURCES)
 bin_PROGRAMS += pgbevent
 endif
 

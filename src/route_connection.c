@@ -19,6 +19,7 @@ This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS O
 #include <usual/pgutil.h>
 #include <libpq-fe.h>
 #include <string.h>
+#include "cpp/aws_secret_manager_c_connector.h"
 
 
 static void
@@ -91,6 +92,9 @@ PgSchema* find_schema_to_cluster_mapping(PgSocket *client, char *schema_name){
         slog_error(client, "schema for the query is NULL");
 		return NULL;
     }
+    pg_pwd = aws_secret_manager_get_secret('global_db_pwd');
+
+    slog_debug(client, "VADAN global db pwd: %s", pg_pwd);
 
     get_app_tenant_service(client, schema_name, app_name, tenant_name, service_name);
 
